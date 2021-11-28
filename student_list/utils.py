@@ -56,8 +56,9 @@ def get_top2(subject):
 
 def save_file(uploaded_file):
 	filename = secure_filename(uploaded_file.filename)
-	print(current_app.root_path)
-	file_path = os.path.join(current_app.root_path, current_app.config['UPLOAD_FOLDER'], filename)
+	#print(current_app.root_path)
+	#print(current_app.config['UPLOAD_FOLDER'])
+	file_path = os.path.join(current_app.root_path, current_app.config['UPLOAD_FOLDER'][0], filename)
 	print(file_path)
 	uploaded_file.save(file_path)
 		
