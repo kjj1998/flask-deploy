@@ -27,5 +27,7 @@ def create_app():
 	migrate.init_app(app, db)
 
 	from . import student_list
+	from . import commands
 	app.register_blueprint(student_list.bp)
+	commands.init_app(app)
 	return app
