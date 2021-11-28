@@ -1,13 +1,13 @@
 import os
 import csv
 from flask import Blueprint, flash, g, redirect, render_template, request, url_for, send_file, current_app
-#from src.db import get_db
-"""from student_list.utils import (
-	get_score, get_student, get_top2, parse_score, 
-	parse_student, upload_score, upload_student, 
-	save_file, allowed_file, get_headers, csv_writer)"""
 
-from student_list.utils import get_student, get_score
+from student_list.utils import (
+	get_headers, get_student, get_score, get_top2,
+	allowed_file, save_file, parse_student,
+	parse_score, upload_student, upload_score,
+	csv_writer
+)
 
 UPLOAD_FOLDER = 'static/files'
 DONWLOAD_FOLDER = 'static/downloads'
@@ -22,7 +22,9 @@ bp = Blueprint('student_list', __name__)
 
 @bp.route('/')
 def index():
-	results = db.session.query(Student, Score).outerjoin(Score, Student.name == Score.name).all()
+	results = db.session.query(Student, Score) \
+											.outerjoin(Score, Student.name == Score.name) \
+											.all()
 	
 	students = {}
 	for result in results:
@@ -127,12 +129,6 @@ def update_score(name, subject):
 		subject = request.form['subject']
 		score = request.form['score']
 
-		"""db.execute(
-			'UPDATE score SET subject = ?, score = ?'
-			' WHERE id = ?',
-			(subject, score, id,)
-		)
-		db.commit()"""
 		db.session.query(Score).filter(Score.id == id).update(
 			{Score.subject: subject, Score.score: score},
 			synchronize_session=False
@@ -142,39 +138,28 @@ def update_score(name, subject):
 
 	return render_template('app/update_score.html', score=score)
 
-"""
-#rf done
 @bp.route('/<name>/deletestudent', methods=('POST',))
 def delete_student(name):
-	db.execute(
-		'DELETE FROM student'
-		' WHERE name = ?', 
-		(name, )	
-	)
-	db.commit()
-	return redirect(url_for('application.index'))
+	db.session.query(Student).filter(Student.name == name).delete()
+	db.session.commit()
+	return redirect(url_for('student_list.index'))
 
-#rf done
 @bp.route('/<name>/<subject>/deletescore', methods=('POST',))
 def delete_score(name, subject):
-	db.execute(
-		'DELETE FROM score'
-		' WHERE name = ? AND subject = ?',
-		(name, subject, )
-	)
-	db.commit()
-	return redirect(url_for('application.index'))
+	db.session.query(Score) \
+						.filter(Score.name == name, Score.subject == subject) \
+						.delete()
+	db.session.commit()
+	return redirect(url_for('student_list.index'))
 
 @bp.route('/rankings')
 def rankings():
-	results = db.execute(
-		'SELECT DISTINCT subject'
-		' FROM score s'
-	).fetchall()
+	results = db.session.query(Score) \
+							.distinct(Score.subject).all()
 	
 	rankings = {}
 	for result in results:
-		subject = result['subject']
+		subject = result.subject
 		top2 = get_top2(subject)
 		rankings[subject] = top2
 	
@@ -224,26 +209,16 @@ def downloadpage():
 
 @bp.route('/downloadstudent', methods=('POST',))
 def download_student():
-	formatted_headers = get_headers('student')
-	results = db.execute(
-		'SELECT *'
-		' FROM student s'
-	).fetchall()
+	headers = get_headers('Student')
 
-	downloaded_file = csv_writer(formatted_headers, results, 'student')
+	results = db.session.query(Student).all()
+	downloaded_file = csv_writer(headers, results, 'student')
 	return send_file(downloaded_file, as_attachment=True)
 
 @bp.route('/downloadscore', methods=('POST',))
 def download_score():
-	formatted_headers = get_headers('score')
+	headers = get_headers('Score')
 	
-	results = db.execute(
-		'SELECT *'
-		' FROM score'
-	).fetchall()
-	downloaded_file = csv_writer(formatted_headers, results, 'score')
+	results = db.session.query(Score).all()
+	downloaded_file = csv_writer(headers, results, 'score')
 	return send_file(downloaded_file, as_attachment=True)
-
-
-"""
-

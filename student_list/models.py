@@ -14,6 +14,11 @@ class Student(db.Model):
 			rep = self.name + self.password + self.student_class
 			return rep
 	
+	def contents_list(self):
+		contents = [self.name, self.password, self.student_class]
+		return contents
+
+	
 class Score(db.Model):
 	id = db.Column(db.String, primary_key=True)
 	name = db.Column(
@@ -34,3 +39,7 @@ class Score(db.Model):
 	def __repr__(self) -> str:
 			rep = self.id + self.subject + str(self.score) + self.name
 			return rep
+	
+	def contents_list(self):
+		contents = [self.id, self.name, self.subject, self.score]
+		return contents

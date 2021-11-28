@@ -22,9 +22,9 @@
  							</form>
 						</th>
 						<th>
-							{#<form action="{{ url_for('application.delete_student', name=name) }}" method="post">
+							<form action="{{ url_for('student_list.delete_student', name=name) }}" method="post">
     						<input type="submit" value="Delete">
- 							</form>#}
+ 							</form>
 						</th>
 					</tr>
 				</table>
@@ -44,9 +44,9 @@
  									</form>
 								</td>
 								<td>
-									{#<form action="{{ url_for('application.delete_score', name=name, subject=subject) }}" method="post">
+									<form action="{{ url_for('student_list.delete_score', name=name, subject=subject) }}" method="post">
     								<input type="submit" value="Delete">
- 									</form>#}
+ 									</form>
 								</td>
 							</tr>
 							{% endif %}

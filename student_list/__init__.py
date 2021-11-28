@@ -12,7 +12,9 @@ def create_app():
 			SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev_key',
 			SQLALCHEMY_DATABASE_URI = "postgresql://postgres:151398@localhost/student" or \
 				'sqlite:///' + os.path.join(app.instance_path, 'task_list.sqlite'),
-			SQLALCHEMY_TRACK_MODIFICATIONS = False
+			SQLALCHEMY_TRACK_MODIFICATIONS = False,
+			UPLOAD_FOLDER = '.\\static\\uploads',
+			DOWNLOAD_FOLDER = '.\\static\\downloads'
 	)
 	db.init_app(app)
 	migrate.init_app(app, db)

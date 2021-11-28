@@ -5,10 +5,10 @@
 {% endblock %}
 
 {% block content %}
-  <form action="{{ url_for('application.download_student') }}" method="post">
+  <form action="{{ url_for('student_list.download_student') }}" method="post">
     <input type="submit" value="Download student table">
  	</form>
-	<form action="{{ url_for('application.download_score') }}" method="post">
+	<form action="{{ url_for('student_list.download_score') }}" method="post">
   	<input type="submit" value="Download score table">
  	</form>
 {% endblock %}

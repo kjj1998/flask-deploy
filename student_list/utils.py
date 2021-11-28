@@ -1,10 +1,9 @@
 
 from werkzeug.utils import secure_filename
-#from src.db import get_db
 import pandas as pd
 import os
 import csv
-from flask import current_app, flash, render_template
+from flask import current_app, flash
 ALLOWED_EXTENSIONS = {'csv'}
 STUDENT_COL_NAMES = ['name','password','class']
 UPLOAD_TAGS = ['student', 'score']
@@ -22,13 +21,10 @@ def get_student(name):
 	return studentDict
 
 def get_score(name, subject):
-	"""score = get_db().execute(
-		'SELECT id, name, subject, score'
-		' FROM score s'
-		' WHERE name = ? AND subject = ?',
-		(name, subject)
-  ).fetchone()"""
-	score = db.session.query(Score).filter(Score.name == name, Score.subject == subject).one()
+	score = db.session.query(Score).filter(
+		Score.name == name, 
+		Score.subject == subject
+	).one()
 
 	scoreDict = {}
 	scoreDict['name'] = score.name
@@ -38,32 +34,31 @@ def get_score(name, subject):
 
 	return scoreDict
 
-"""
+
 def get_top2(subject):
-	top2 = get_db().execute(
-		'SELECT *'
-		' FROM score s JOIN student t ON s.name = t.name'
-		' WHERE s.subject = ?'
-		'	ORDER BY score DESC'
-		' LIMIT 2',
-		(subject, )
-	).fetchall()
+	top2 = db.session.query(Student, Score) \
+							.join(Score, Student.name == Score.name) \
+							.filter(Score.subject == subject) \
+							.order_by(Score.score.desc()) \
+							.limit(2).all()
 
 	top2_list = []
 	for top in top2:
 		temp = {}
-		temp['score'] = top['score']
-		temp['subject'] = top['subject']
-		temp['name'] = top['name']
-		temp['class'] = top['class']
-		temp['password'] = top['password']
+		temp['score'] = top[1].score
+		temp['subject'] = top[1].subject
+		temp['name'] = top[0].name
+		temp['class'] = top[0].student_class
+		temp['password'] = top[0].password
 		top2_list.append(temp)
 	
 	return top2_list
 
 def save_file(uploaded_file):
 	filename = secure_filename(uploaded_file.filename)
+	print(current_app.root_path)
 	file_path = os.path.join(current_app.root_path, current_app.config['UPLOAD_FOLDER'], filename)
+	print(file_path)
 	uploaded_file.save(file_path)
 		
 	return file_path
@@ -122,61 +117,54 @@ def allowed_file(filename):
 
 def upload_score(filepath):
 	csvData = pd.read_csv(filepath, header=0)
-	db = get_db()
 	error = None
 	for i,row in csvData.iterrows():
 		try:
 			id = row['name'] + row['subject']
-			db.execute(
-				'INSERT INTO score (id, name, subject, score)'
-				' VALUES (?, ?, ?, ?)',
-				(id, row['name'], row['subject'], row['score'])
-			)
-			db.commit()
-		except db.IntegrityError:
+			db.session.add(Score(id, row['name'], row['subject'], row['score']))
+			db.session.commit()
+		
+		except IntegrityError:
+			db.session.rollback()
 			error = f"Subject {row['subject']} for Student {row['name']} is already registered."
 			flash(error)	
 
 def upload_student(filepath):
 	col_names = STUDENT_COL_NAMES
 	csvData = pd.read_csv(filepath,names=col_names, header=None)
-	db = get_db()
 	error = None
 	
 	# uploads each row (except for header) into the database
 	for i,row in csvData.iterrows():
 		try:
 			if i != 0:
-				db.execute(
-					'INSERT INTO student (name, password, class)'
-					' VALUES (?, ?, ?)',
-					(row['name'], row['password'], row['class'])
-				)
-				db.commit()
-		except db.IntegrityError:
+				db.session.add(Student(row['name'], row['password'], row['class']))
+				db.session.commit()
+		except IntegrityError:
+			db.session.rollback()
 			error = f"Student {row['name']} is already registered."
 			flash(error)
 
+
 def get_headers(name):
-	db = get_db()
-
-	headers = db.execute(
-		'SELECT name FROM PRAGMA_TABLE_INFO(?)',
-		(name, )
-	).fetchall()
-
-	formatted_headers = []
-	for header in headers:
-		formatted_headers.append(header['name'])
+	if name == 'Student':
+		headers = Student.__table__.columns.keys()
+	else:
+		headers = Score.__table__.columns.keys()
 	
-	return formatted_headers
+	return headers
 
 def csv_writer(formatted_headers, results, name):
 	temp_path = os.path.join(current_app.root_path, current_app.config['DOWNLOAD_FOLDER'], name + '.csv')
+	print(results)
+
+	contents = []
+	for result in results:
+		contents.append(result.contents_list())
+
 	with open(temp_path, mode='w', newline='') as file:
 		file_writer = csv.writer(file, delimiter=',')
 		file_writer.writerow(formatted_headers)
-		file_writer.writerows(results)
+		file_writer.writerows(contents)
 	
 	return temp_path
-	"""
