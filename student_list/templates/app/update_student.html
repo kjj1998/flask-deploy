@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Edit {{ student['name']}} details{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <form method="post">
+		<label for="class">Class</label>
+    <input name="class" id="class"
+      value="{{ request.form['class'] or student['class'] }}" required>
+		<br>
+		<label for="password">Password</label>
+    <input name="password" id="password"
+      value="{{ request.form['password'] or student['password'] }}" required>
+		<br>
+		<input type="submit" value="Save">
+  </form>
+  <hr>
+{% endblock %}

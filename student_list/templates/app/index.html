@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Results{% endblock %}</h1>
+	<form action="{{ url_for('application.create_student') }}">
+    <input type="submit" value="Add new student">
+ 	</form>
+{% endblock %}
+
+{% block content %}
+	{% for name, details in students.items() %}
+		<article>
+			<header>
+				<div>
+				<table>
+					<tr>
+						<th>Name: {{ name }}</th>
+						<th>Class: {{ details['class'] }}</th>
+						<th>
+							<form action="{{ url_for('application.update', name=name) }}">
+    						<input type="submit" value="Edit">
+ 							</form>
+						</th>
+						<th>
+							<form action="{{ url_for('application.delete_student', name=name) }}" method="post">
+    						<input type="submit" value="Delete">
+ 							</form>
+						</th>
+					</tr>
+				</table>
+					<table>
+						<tr>
+							<th>Subject</th>
+							<th>Score</th>
+						</tr>
+						{% for subject, score in details['subject'].items() %}
+							{% if subject is not none%}
+							<tr>
+								<td>{{ subject }}</td>
+								<td>{{ score }}</td>
+								<td>
+									<form action="{{ url_for('application.update_score', name=name, subject=subject) }}">
+    								<input type="submit" value="Edit">
+ 									</form>
+								</td>
+								<td>
+									<form action="{{ url_for('application.delete_score', name=name, subject=subject) }}" method="post">
+    								<input type="submit" value="Delete">
+ 									</form>
+								</td>
+							</tr>
+							{% endif %}
+						{% endfor %}
+					</table>
+					<form action="{{ url_for('application.create_subject', name=name) }}">
+    				<input type="submit" value="Add new subject">
+ 					</form>
+				</div>
+			</header>
+		</article>
+		{% if not loop.last %}
+			<hr>
+		{% endif %}
+	{% endfor %}
+{% endblock %}

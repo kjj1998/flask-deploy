@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Edit subject{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <form method="post">
+		<label for="subject">Subject</label>
+    <input name="subject" id="subject"
+      value="{{ request.form['subject'] or score['subject'] }}" required>
+		<br>
+		<label for="score">Score</label>
+    <input name="score" id="score"
+      value="{{ request.form['score'] or score['score'] }}" required>
+		<br>
+		<input type="submit" value="Save">
+  </form>
+  <hr>
+{% endblock %}

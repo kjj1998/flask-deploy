@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}New subject for student {{ name }}{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <form method="post">
+    <label for="subject">Subject</label>
+    <input name="subject" id="subject" value="{{ request.form['subject'] }}" required>
+		<br>	
+    <label for="score">Score</label>
+    <input name="score" id="score" value="{{ request.form['score'] }}" required>
+		<br>
+		<input type="Submit" value="Save">
+  </form>
+{% endblock %}

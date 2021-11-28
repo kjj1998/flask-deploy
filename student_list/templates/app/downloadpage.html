@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Download{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <form action="{{ url_for('application.download_student') }}" method="post">
+    <input type="submit" value="Download student table">
+ 	</form>
+	<form action="{{ url_for('application.download_score') }}" method="post">
+  	<input type="submit" value="Download score table">
+ 	</form>
+{% endblock %}

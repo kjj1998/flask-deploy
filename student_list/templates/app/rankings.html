@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Top 2 students for each subject{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+	{% for subject, students in rankings.items() %}
+		<table>
+				<tr>
+					<th>Rank</th>
+					<th>Subject</th>
+					<th>Name</th>
+					<th>Score</th>
+					<th>Class</th>
+					<th>Password</th>
+				</tr>
+		{% for student in students %}
+				<tr>
+					<td>{{ loop.index }}</td>
+					<td>{{ subject }}</td>
+					<td>{{ student['name'] }}</td>
+					<td>{{ student['score'] }}</td>
+					<td>{{ student['class'] }}</td>
+					<td>{{ student['password'] }}</td>
+				</tr>
+		{% endfor %}
+		</table>
+		{% if not loop.last %}
+			<hr>
+		{% endif %}
+	{% endfor %}
+{% endblock %}

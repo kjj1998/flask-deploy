@@ -1,0 +1,21 @@
+<!doctype html>
+<title>{% block title %}{% endblock %} - App</title>
+<nav>
+	<ul>
+		<li><a href="{{ url_for('application.upload') }}">Upload</a></li>
+  	<li><a href="{{ url_for('application.downloadpage') }}">Download</a></li>
+		<li><a href="{{ url_for('application.rankings') }}">Rankings</a></li>
+	</ul>
+</nav>
+<section class="content">
+  <header>
+    {% block header %}{% endblock %}
+  </header>
+  {% for message in get_flashed_messages() %}
+    <div class="flash">{{ message }}</div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</section>
+<form action="{{ url_for('application.index') }}">
+  <input type="submit" value="Main Page">
+</form>
