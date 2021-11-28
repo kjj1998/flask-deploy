@@ -10,8 +10,9 @@ def create_app():
 	app = Flask(__name__)
 
 	uri = os.getenv("DATABASE_URL")  # or other relevant config var
-	if uri.startswith("postgres://"):
-		uri = uri.replace("postgres://", "postgresql://", 1)
+	if uri is not None:
+		if uri.startswith("postgres://"):
+			uri = uri.replace("postgres://", "postgresql://", 1)
 	app.config.from_mapping(
 			SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev_key',
 			SQLALCHEMY_DATABASE_URI = 
