@@ -10,18 +10,27 @@ class Student(db.Model):
 		self.password = password
 		self.student_class = student_class
 	
+	def __repr__(self) -> str:
+			rep = self.name + self.password + self.student_class
+			return rep
+	
 class Score(db.Model):
 	id = db.Column(db.String, primary_key=True)
-	subject = db.Column(db.String(100))
-	score = db.Column(db.Float(3))
 	name = db.Column(
 		db.String(100), 
-		db.ForeignKey("Student.name", ondelete="CASCADE", onupdate="CASCADE"),
+		db.ForeignKey("student.name", ondelete="CASCADE", onupdate="CASCADE"),
 		nullable=False
 	)
+	subject = db.Column(db.String(100))
+	score = db.Column(db.Numeric(3))
+	
 
-	def __init__(self, id, subject, score, name):
+	def __init__(self, id, name, subject, score):
 		self.id = id
 		self.subject = subject
 		self.score = score
 		self.name = name
+	
+	def __repr__(self) -> str:
+			rep = self.id + self.subject + str(self.score) + self.name
+			return rep

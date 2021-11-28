@@ -2,10 +2,12 @@ import os
 import csv
 from flask import Blueprint, flash, g, redirect, render_template, request, url_for, send_file, current_app
 #from src.db import get_db
-from student_list.utils import (
+"""from student_list.utils import (
 	get_score, get_student, get_top2, parse_score, 
 	parse_student, upload_score, upload_student, 
-	save_file, allowed_file, get_headers, csv_writer)
+	save_file, allowed_file, get_headers, csv_writer)"""
+
+from student_list.utils import get_student, get_score
 
 UPLOAD_FOLDER = 'static/files'
 DONWLOAD_FOLDER = 'static/downloads'
@@ -13,26 +15,25 @@ UPLOAD_TAGS = ['student', 'score']
 
 from student_list import db
 from student_list.models import Student, Score
+from sqlalchemy.exc import IntegrityError
+
 
 bp = Blueprint('student_list', __name__)
 
 @bp.route('/')
 def index():
-	"""results = db.execute(
-		'SELECT s.name, class, subject, score'
-		' FROM student s LEFT JOIN score t ON s.name = t.name'
-	).fetchall()"""
-
-	results = db.session.query(Student).join(Score, Student.name == Score.name, isouter=True).all()
+	results = db.session.query(Student, Score).outerjoin(Score, Student.name == Score.name).all()
 	
-	print(results)
-
 	students = {}
 	for result in results:
-		name = result['name']
-		student_class = result['class']
-		subject = result['subject']
-		score = result['score']
+		name = result[0].name
+		student_class = result[0].student_class
+		if result[1] == None:
+			subject = None
+			score = None
+		else:
+			subject = result[1].subject
+			score = result[1].score
 		
 		details = {}
 		if name not in students:
@@ -45,14 +46,12 @@ def index():
 	
 	return render_template('app/index.html', students=students)
 
-# done rf
 @bp.route('/create_student', methods=('GET', 'POST'))
 def create_student():
 	if request.method == 'POST':
 		name = request.form['name']
 		student_class = request.form['class']
 		password = request.form['password']
-		db = get_db()
 		error = None
 
 		if not name:
@@ -64,27 +63,22 @@ def create_student():
 
 		if error is None:
 			try:
-				db.execute(
-					'INSERT INTO student (name, password, class)'
-					' VALUES (?, ?, ?)',
-					(name, password, student_class)
-				)
-				db.commit()
-			except db.IntegrityError:
+				db.session.add(Student(name, password, student_class))
+				db.session.commit()
+			except IntegrityError:
+				db.session.rollback()
 				error = f"Student {name} is already registered."
 			else:
-				return redirect(url_for('application.index'))
+				return redirect(url_for('student_list.index'))
 		flash(error)
 
 	return render_template('app/create_student.html')
 
-#rf done
 @bp.route('/<name>/create_subject', methods=('GET', 'POST'))
 def create_subject(name):
 	if request.method == 'POST':
 		subject = request.form['subject']
 		score = request.form['score']
-		db = get_db()
 		error = None
 
 		if not subject:
@@ -95,21 +89,17 @@ def create_subject(name):
 		if error is None:
 			try:
 				id = name + subject
-				db.execute(
-					'INSERT INTO score (id, name, subject, score)'
-					' VALUES (?, ?, ?, ?)',
-					(id, name , subject, float(score))
-				)
-				db.commit()
-			except db.IntegrityError:
+				db.session.add(Score(id, name, subject, score))
+				db.session.commit()
+			except IntegrityError:
+				db.session.rollback()
 				error = f"Subject {subject} for Student {name} is already registered."
 			else:
-				return redirect(url_for('application.index'))
+				return redirect(url_for('student_list.index'))
 		flash(error)
 		
 	return render_template('app/create_subject.html', name=name)
 
-#rf done
 @bp.route('/<name>/update', methods=('GET', 'POST'))
 def update(name):
 	student = get_student(name)
@@ -119,18 +109,15 @@ def update(name):
 		student_class = request.form['class']
 		password = request.form['password']
 
-		db = get_db()
-		db.execute(
-			'UPDATE student SET class = ?, password = ?'
-			' WHERE name = ?',
-			(student_class, password, student_name)
+		db.session.query(Student).filter(Student.name == student_name).update(
+			{Student.student_class: student_class, Student.password: password},
+			synchronize_session=False
 		)
-		db.commit()
-		return redirect(url_for('application.index'))
+		db.session.commit()
+		return redirect(url_for('student_list.index'))
 
 	return render_template('app/update_student.html', student=student)
 
-#rf done
 @bp.route('/<name>/<subject>/updatescore', methods=('GET', 'POST'))
 def update_score(name, subject):
 	score = get_score(name, subject)
@@ -139,22 +126,26 @@ def update_score(name, subject):
 	if request.method == 'POST':
 		subject = request.form['subject']
 		score = request.form['score']
-		db = get_db()
 
-		db.execute(
+		"""db.execute(
 			'UPDATE score SET subject = ?, score = ?'
 			' WHERE id = ?',
 			(subject, score, id,)
 		)
-		db.commit()
-		return redirect(url_for('application.index'))
+		db.commit()"""
+		db.session.query(Score).filter(Score.id == id).update(
+			{Score.subject: subject, Score.score: score},
+			synchronize_session=False
+		)
+		db.session.commit()
+		return redirect(url_for('student_list.index'))
 
 	return render_template('app/update_score.html', score=score)
 
+"""
 #rf done
 @bp.route('/<name>/deletestudent', methods=('POST',))
 def delete_student(name):
-	db = get_db()
 	db.execute(
 		'DELETE FROM student'
 		' WHERE name = ?', 
@@ -166,7 +157,6 @@ def delete_student(name):
 #rf done
 @bp.route('/<name>/<subject>/deletescore', methods=('POST',))
 def delete_score(name, subject):
-	db = get_db()
 	db.execute(
 		'DELETE FROM score'
 		' WHERE name = ? AND subject = ?',
@@ -177,7 +167,6 @@ def delete_score(name, subject):
 
 @bp.route('/rankings')
 def rankings():
-	db = get_db()
 	results = db.execute(
 		'SELECT DISTINCT subject'
 		' FROM score s'
@@ -235,7 +224,6 @@ def downloadpage():
 
 @bp.route('/downloadstudent', methods=('POST',))
 def download_student():
-	db = get_db()
 	formatted_headers = get_headers('student')
 	results = db.execute(
 		'SELECT *'
@@ -247,7 +235,6 @@ def download_student():
 
 @bp.route('/downloadscore', methods=('POST',))
 def download_score():
-	db = get_db()
 	formatted_headers = get_headers('score')
 	
 	results = db.execute(
@@ -258,5 +245,5 @@ def download_score():
 	return send_file(downloaded_file, as_attachment=True)
 
 
-
+"""
 
