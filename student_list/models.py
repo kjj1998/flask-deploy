@@ -1,5 +1,6 @@
 from student_list import db
 
+# Student object for database
 class Student(db.Model):
 	name = db.Column(db.String(100), primary_key=True, unique=True)
 	password = db.Column(db.String(70))
@@ -18,7 +19,8 @@ class Student(db.Model):
 		contents = [self.name, self.password, self.student_class]
 		return contents
 
-	
+
+# Score object for database
 class Score(db.Model):
 	id = db.Column(db.String, primary_key=True)
 	name = db.Column(
@@ -29,7 +31,6 @@ class Score(db.Model):
 	subject = db.Column(db.String(100))
 	score = db.Column(db.Numeric(3))
 	
-
 	def __init__(self, id, name, subject, score):
 		self.id = id
 		self.subject = subject

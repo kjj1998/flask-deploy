@@ -1,17 +1,1 @@
 id,name,subject,score
-student1science,student1,science,100.00
-student2science,student2,science,80.00
-student3science,student3,science,70.00
-student3math,student3,math,100.00
-student2math,student2,math,90.00
-student1math,student1,math,80.00
-jonHistory,jon,History,100.00
-jonGeography,jon,Geography,97.85
-student3Geography,student3,Geography,97.87
-student1Geography,student1,Geography,55.60
-student1english,student1,english,100.00
-student2english,student2,english,80.00
-student3english,student3,english,70.00
-student3chinese,student3,chinese,100.00
-student2chinese,student2,chinese,90.00
-student1chinese,student1,chinese,80.00

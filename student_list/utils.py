@@ -4,12 +4,16 @@ import pandas as pd
 import os
 import csv
 from flask import current_app, flash
-ALLOWED_EXTENSIONS = {'csv'}
-STUDENT_COL_NAMES = ['name','password','class']
-UPLOAD_TAGS = ['student', 'score']
 from student_list import db
 from student_list.models import Student, Score
 from sqlalchemy.exc import IntegrityError
+
+# declare constants
+ALLOWED_EXTENSIONS = {'csv'}
+STUDENT_COL_NAMES = ['name','password','class']
+SCORE_COL_NAMES = ['name','subject','score']
+UPLOAD_TAGS = ['student', 'score']
+
 
 def get_student(name):
 	student = db.session.query(Student).filter(Student.name == name).one()
@@ -34,8 +38,8 @@ def get_score(name, subject):
 
 	return scoreDict
 
-
 def get_top2(subject):
+	# JOIN Student and Score, filter by subject, order in descending order and get the top 2 record
 	top2 = db.session.query(Student, Score) \
 							.join(Score, Student.name == Score.name) \
 							.filter(Score.subject == subject) \
@@ -56,30 +60,33 @@ def get_top2(subject):
 
 def save_file(uploaded_file):
 	filename = secure_filename(uploaded_file.filename)
-	#print(current_app.root_path)
-	#print(current_app.config['UPLOAD_FOLDER'])
 	file_path = os.path.join(current_app.root_path, current_app.config['UPLOAD_FOLDER'][0], filename)
-	print(file_path)
 	uploaded_file.save(file_path)
 		
 	return file_path
 
 def parse_score(filepath):
-	col_names = ['name','subject','score']
+	# get default column names
+	col_names = SCORE_COL_NAMES
+	col_num = len(col_names)
 	error = None
-	col_num = 3
+	
+	# read in uploaded csv file and get its column names
 	csvData = pd.read_csv(filepath, header=0)
 	csv_col_names = csvData.columns.values
 	csv_col_names_len = len(csvData.columns)
 	
+	# check length of columns
 	if (csv_col_names_len != col_num):
 		error = f"CSV file has {len(csvData.columns)} columns, expected {col_num} columns"
+	# check if names of the columns are the same
 	else: 
 		for i in range(csv_col_names_len):
 			if col_names[i] != csv_col_names[i]:
 				error = f"CSV file has {csv_col_names[i]} column, expected {col_names[i]} column"
 				break
 	
+	# format the name and score accordingly
 	if error is None:
 		for i,row in csvData.iterrows():
 			formatted_score = ''.join(filter(str.isdigit, str(row['score'])))
@@ -91,9 +98,12 @@ def parse_score(filepath):
 		return error
 
 def parse_student(filepath):
+	# get default column names
 	error = None
 	col_names = STUDENT_COL_NAMES
 	col_len = len(col_names)
+
+	# read in uploaded csv file and get its column names
 	csvData = pd.read_csv(filepath, header=0)
 	csv_col_names = csvData.columns.values
 	csv_col_names_len = len(csvData.columns)
@@ -112,6 +122,7 @@ def parse_student(filepath):
 		os.remove(filepath)
 		return error
 
+# check uploaded file extension
 def allowed_file(filename):
 	return '.' in filename and \
 		filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -119,12 +130,13 @@ def allowed_file(filename):
 def upload_score(filepath):
 	csvData = pd.read_csv(filepath, header=0)
 	error = None
+	
+	# upload each row of the csv file into the database as a record
 	for i,row in csvData.iterrows():
 		try:
 			id = row['name'] + row['subject']
 			db.session.add(Score(id, row['name'], row['subject'], row['score']))
 			db.session.commit()
-		
 		except IntegrityError:
 			db.session.rollback()
 			error = f"Subject {row['subject']} for Student {row['name']} is already registered."
@@ -146,23 +158,26 @@ def upload_student(filepath):
 			error = f"Student {row['name']} is already registered."
 			flash(error)
 
-
+# get the headers of each table in the database
 def get_headers(name):
 	if name == 'Student':
 		headers = Student.__table__.columns.keys()
 	else:
 		headers = Score.__table__.columns.keys()
-	
+
 	return headers
 
 def csv_writer(formatted_headers, results, name):
+	# create a path where the file to be downloaded will be stored
 	temp_path = os.path.join(current_app.root_path, current_app.config['DOWNLOAD_FOLDER'], name + '.csv')
-	print(results)
 
 	contents = []
+
+	# Append the contents of each object into a list
 	for result in results:
 		contents.append(result.contents_list())
 
+	# write both headers and contents into a csv file
 	with open(temp_path, mode='w', newline='') as file:
 		file_writer = csv.writer(file, delimiter=',')
 		file_writer.writerow(formatted_headers)

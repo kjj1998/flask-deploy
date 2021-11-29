@@ -1,12 +1,8 @@
 import click
 from flask.cli import with_appcontext
-from flask import Blueprint
-
 from student_list import db
-from .models import Student, Score
 
-bp = Blueprint('commands', __name__)
-
+# create a cli command to drop all existing tables and create new tables
 @click.command('create-tables')
 @with_appcontext
 def create_tables():

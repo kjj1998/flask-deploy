@@ -1,7 +1,9 @@
-import os
-import csv
-from flask import Blueprint, flash, g, redirect, render_template, request, url_for, send_file, current_app
+from flask import Blueprint, flash, g, redirect, render_template, request, url_for, send_file
+from student_list import db
+from student_list.models import Student, Score
+from sqlalchemy.exc import IntegrityError
 
+# import necessary utility functions
 from student_list.utils import (
 	get_headers, get_student, get_score, get_top2,
 	allowed_file, save_file, parse_student,
@@ -9,23 +11,29 @@ from student_list.utils import (
 	csv_writer
 )
 
-UPLOAD_FOLDER = 'static/files'
-DONWLOAD_FOLDER = 'static/downloads'
-UPLOAD_TAGS = ['student', 'score']
-
-from student_list import db
-from student_list.models import Student, Score
-from sqlalchemy.exc import IntegrityError
-
-
+UPLOAD_TAGS = ['student', 'score']	# declare constants
 bp = Blueprint('student_list', __name__)
 
 @bp.route('/')
 def index():
+	# LEFT OUTER JOIN on Student and Score where Student.name == Score.name
+	# results is an array of tupples where in each tupple,
+	# the first index is the Student object and the second is the Score object
 	results = db.session.query(Student, Score) \
 											.outerjoin(Score, Student.name == Score.name) \
 											.all()
 	
+	""" store the results in a dictionary with name of student as key and the details (in the form of a dictionary) as values
+			Eg. 
+			{
+				"student1" : {
+												"class" : "class1"
+												"subject" : {
+																			"english" : 76, "science" : 85
+																		}
+										 }
+			} 
+	"""
 	students = {}
 	for result in results:
 		name = result[0].name
@@ -56,6 +64,7 @@ def create_student():
 		password = request.form['password']
 		error = None
 
+		# check that all required fields are given
 		if not name:
 			error = "Name is required"
 		elif not student_class:
@@ -104,6 +113,7 @@ def create_subject(name):
 
 @bp.route('/<name>/update', methods=('GET', 'POST'))
 def update(name):
+	# get the current information of that particular student
 	student = get_student(name)
 
 	if request.method == 'POST':
@@ -111,10 +121,13 @@ def update(name):
 		student_class = request.form['class']
 		password = request.form['password']
 
-		db.session.query(Student).filter(Student.name == student_name).update(
-			{Student.student_class: student_class, Student.password: password},
-			synchronize_session=False
-		)
+		# Update student_class and password of a single record in Student by filtering on student_name
+		db.session.query(Student) \
+							.filter(Student.name == student_name) \
+							.update({
+								Student.student_class: student_class, 
+								Student.password: password}, 
+								synchronize_session=False)			
 		db.session.commit()
 		return redirect(url_for('student_list.index'))
 
@@ -129,10 +142,13 @@ def update_score(name, subject):
 		subject = request.form['subject']
 		score = request.form['score']
 
-		db.session.query(Score).filter(Score.id == id).update(
-			{Score.subject: subject, Score.score: score},
-			synchronize_session=False
-		)
+		# Update subject and score of a single record in Score by filtering on id
+		db.session.query(Score) \
+							.filter(Score.id == id) \
+							.update(
+								{Score.subject: subject, Score.score: score},
+								synchronize_session=False
+							)
 		db.session.commit()
 		return redirect(url_for('student_list.index'))
 
@@ -154,13 +170,14 @@ def delete_score(name, subject):
 
 @bp.route('/rankings')
 def rankings():
+	# Select records with distinct subject from Score 
 	results = db.session.query(Score) \
 							.distinct(Score.subject).all()
 	
 	rankings = {}
 	for result in results:
 		subject = result.subject
-		top2 = get_top2(subject)
+		top2 = get_top2(subject)	# get_top2(subject) returns a list containing information relating to the top 2 scores
 		rankings[subject] = top2
 	
 	return render_template('app/rankings.html', rankings=rankings)
@@ -168,12 +185,13 @@ def rankings():
 @bp.route('/upload', methods=('GET', 'POST'))
 def upload():
 	if request.method == 'POST':
+		# Check if student or score files are being uploaded
 		for tag in UPLOAD_TAGS:
 			if (request.files.get(tag, -1) != -1):
 				correct_tag = tag
 				break
 		
-		file = request.files[correct_tag]
+		file = request.files[correct_tag]		# get uploaded file object from the front-end
 
 		# if user submits without selecting a file
 		if file.filename == '':
@@ -196,6 +214,7 @@ def upload():
 			flash(error)
 			return redirect(request.url)
 		else:
+			# upload to db if there are no errors
 			if (correct_tag == 'student'):
 				upload_student(saved_path)
 			else:
@@ -209,16 +228,14 @@ def downloadpage():
 
 @bp.route('/downloadstudent', methods=('POST',))
 def download_student():
-	headers = get_headers('Student')
-
-	results = db.session.query(Student).all()
-	downloaded_file = csv_writer(headers, results, 'student')
+	headers = get_headers('Student')														# get column headers
+	results = db.session.query(Student).all()										# retrieve all rows from database
+	downloaded_file = csv_writer(headers, results, 'student')		# write headers and retrieved rows into a csv file
 	return send_file(downloaded_file, as_attachment=True)
 
 @bp.route('/downloadscore', methods=('POST',))
 def download_score():
 	headers = get_headers('Score')
-	
 	results = db.session.query(Score).all()
 	downloaded_file = csv_writer(headers, results, 'score')
 	return send_file(downloaded_file, as_attachment=True)
