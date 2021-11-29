@@ -10,6 +10,7 @@ bp = Blueprint('commands', __name__)
 @click.command('create-tables')
 @with_appcontext
 def create_tables():
+	db.drop_all()
 	db.create_all()
 	click.echo('Initialized the database.')
 
